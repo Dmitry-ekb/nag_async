@@ -1,1 +1,944 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NAG Поиск</title>
+    <link rel="icon" href="data:,">
+    <style>
+        :root {
+            --bg: #f5f5f7;
+            --card-bg: #ffffff;
+            --text: #1d1d1f;
+            --text-secondary: #86868b;
+            --accent: #007AFF;
+            --accent-hover: #0062cc;
+            --border: #d2d2d7;
+            --success: #34c759;
+            --warning: #ff9500;
+            --error: #ff3b30;
+            --radius: 12px;
+        }
 
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 1200px;
+            height: 90vh;
+            max-height: 900px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 28px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .header-title {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: var(--text);
+        }
+        .btn {
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 8px 18px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            letter-spacing: -0.5px;
+            white-space: nowrap;
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .btn-accent {
+            background: var(--accent);
+            color: #fff;
+        }
+        .btn-accent:hover:not(:disabled) {
+            background: var(--accent-hover);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        .btn-outline:hover:not(:disabled) {
+            background: #f5f5f7;
+        }
+        .btn-sm {
+            font-size: 12px;
+            padding: 5px 12px;
+            border-radius: 6px;
+        }
+
+        .api-key-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 28px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .api-key-input {
+            flex: 1;
+            max-width: 400px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 7px 12px;
+            font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.15s;
+            color: var(--text);
+            background: #fafafa;
+        }
+        .api-key-input:focus {
+            border-color: var(--accent);
+            background: #fff;
+        }
+        .api-key-input::placeholder {
+            color: #c7c7cc;
+        }
+        .api-key-status {
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+        .api-key-status.set {
+            color: var(--success);
+        }
+        .api-key-status.unset {
+            color: var(--error);
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 28px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .status-dot.off {
+            background: var(--border);
+        }
+        .status-dot.on {
+            background: var(--success);
+        }
+        .status-dot.loading {
+            background: var(--warning);
+            animation: pulse 0.8s infinite;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        .main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .left-panel {
+            width: 42%;
+            padding: 16px 14px 16px 28px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .left-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        .textarea {
+            flex: 1;
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px;
+            font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            transition: border-color 0.15s;
+            color: var(--text);
+            background: #fafafa;
+            line-height: 1.6;
+        }
+        .textarea:focus {
+            border-color: var(--accent);
+            background: #fff;
+        }
+        .textarea::placeholder {
+            color: #c7c7cc;
+        }
+
+        .right-panel {
+            flex: 1;
+            padding: 16px 28px 16px 14px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .right-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-shrink: 0;
+        }
+        .right-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+        .results-container {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-right: 6px;
+        }
+        .results-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .results-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .results-container::-webkit-scrollbar-thumb {
+            background: #d2d2d7;
+            border-radius: 3px;
+        }
+
+        .card {
+            background: #fafafa;
+            border: 1px solid #f0f0f0;
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            flex-shrink: 0;
+        }
+        .card-sku {
+            font-weight: 700;
+            font-size: 15px;
+            color: var(--text);
+            margin-bottom: 2px;
+        }
+        .card-title {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+        .card-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-bottom: 6px;
+            margin-top: 10px;
+        }
+        .card-price-row {
+    font-size: 13px;
+    padding: 2px 0;
+    color: var(--text);
+    display: flex;
+    justify-content: space-between;
+    max-width: 150px;
+}
+        .card-price-label {
+            color: var(--text-secondary);
+        }
+        .card-price-value {
+            font-weight: 500;
+        }
+        .card-stock-row {
+            font-size: 13px;
+            padding: 3px 0;
+            color: var(--text);
+            display: flex;
+            gap: 6px;
+            align-items: baseline;
+        }
+        .card-stock-date {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+        .card-empty {
+            color: var(--text-secondary);
+            font-style: italic;
+            font-size: 13px;
+            padding: 2px 0;
+        }
+        .card-error {
+            background: #fff5f5;
+            border-color: #ffd7d5;
+        }
+        .card-error .card-sku {
+            color: var(--error);
+        }
+        .card-divider {
+            border: none;
+            border-top: 1px solid #e5e5ea;
+            margin: 0;
+        }
+        .card-totals {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #e5e5ea;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .footer {
+            padding: 14px 28px;
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+            display: flex;
+            justify-content: center;
+        }
+        .btn-large {
+            font-size: 16px;
+            padding: 12px 40px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1d1d1f;
+            color: #fff;
+            padding: 10px 22px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .empty-state {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #c7c7cc;
+            font-size: 14px;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .app {
+                height: auto;
+                max-height: none;
+                border-radius: 0;
+            }
+            .main {
+                flex-direction: column;
+            }
+            .left-panel {
+                width: 100%;
+                height: 200px;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                padding: 16px;
+            }
+            .right-panel {
+                padding: 16px;
+                min-height: 300px;
+            }
+            .header {
+                padding: 14px 16px;
+            }
+            .header-title {
+                font-size: 18px;
+            }
+            .api-key-row {
+                padding: 10px 16px;
+                flex-wrap: wrap;
+            }
+            .api-key-input {
+                max-width: none;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app">
+        <div class="header">
+            <span class="header-title">NAG Поиск</span>
+            <button class="btn btn-outline" id="btnReset" title="Очистить поля ввода и вывода">Обновить</button>
+        </div>
+
+        <div class="api-key-row">
+            <span>API-ключ:</span>
+            <input type="password" class="api-key-input" id="apiKeyInput"
+                placeholder="Вставьте ключ из личного кабинета NAG" autocomplete="off">
+            <span class="api-key-status unset" id="apiKeyStatus">не задан</span>
+        </div>
+
+        <div class="status-bar">
+            <span>Каталог:</span>
+            <span class="status-dot off" id="statusDot"></span>
+            <span id="statusText">не загружен</span>
+            <button class="btn btn-outline btn-sm" id="btnLoadCatalog">Обновить каталог</button>
+            <span style="margin-left:auto;font-size:11px;color:#c7c7cc;">Ctrl+Enter — поиск</span>
+        </div>
+
+        <div class="main">
+            <div class="left-panel">
+                <span class="left-label">Артикулы (по одному на строку)</span>
+                <textarea class="textarea" id="articleInput"
+                    placeholder="SNR-S2982G-24TE&#10;c5010&#10;604-13-01"></textarea>
+            </div>
+
+            <div class="right-panel">
+                <div class="right-header">
+                    <span class="right-label">Результаты</span>
+                    <button class="btn btn-outline btn-sm" id="btnCopyAll" disabled>📋 Копировать всё</button>
+                </div>
+                <div class="results-container" id="resultsContainer">
+                    <div class="empty-state" id="emptyState">
+                        Введите артикулы слева<br>и нажмите «Получить данные»
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <button class="btn btn-accent btn-large" id="btnGetData" disabled>Получить данные</button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        (function() {
+            const btnReset = document.getElementById('btnReset');
+            const btnLoadCatalog = document.getElementById('btnLoadCatalog');
+            const btnGetData = document.getElementById('btnGetData');
+            const btnCopyAll = document.getElementById('btnCopyAll');
+            const articleInput = document.getElementById('articleInput');
+            const apiKeyInput = document.getElementById('apiKeyInput');
+            const apiKeyStatus = document.getElementById('apiKeyStatus');
+            const resultsContainer = document.getElementById('resultsContainer');
+            const emptyState = document.getElementById('emptyState');
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            const toast = document.getElementById('toast');
+
+            const API_BASE = 'https://b2b.nag.ru/api/export';
+            const STORAGE_KEY = 'nag_api_key';
+
+            let catalogMap = null;
+            let isLoading = false;
+            let lastSearchResults = null;
+
+            function getApiKey() {
+                return apiKeyInput.value.trim();
+            }
+
+            function hasApiKey() {
+                return getApiKey().length > 0;
+            }
+
+            function updateApiKeyStatus() {
+                if (hasApiKey()) {
+                    apiKeyStatus.textContent = '✓ задан';
+                    apiKeyStatus.className = 'api-key-status set';
+                } else {
+                    apiKeyStatus.textContent = 'не задан';
+                    apiKeyStatus.className = 'api-key-status unset';
+                }
+                updateButtonsState();
+            }
+
+            function saveApiKey() {
+                const key = getApiKey();
+                if (key) {
+                    localStorage.setItem(STORAGE_KEY, key);
+                } else {
+                    localStorage.removeItem(STORAGE_KEY);
+                }
+            }
+
+            function loadApiKey() {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    apiKeyInput.value = saved;
+                }
+                updateApiKeyStatus();
+            }
+
+            function getTimestamp() {
+                const now = new Date();
+                const y = now.getFullYear();
+                const m = String(now.getMonth() + 1).padStart(2, '0');
+                const d = String(now.getDate()).padStart(2, '0');
+                return `${y}${m}${d}`;
+            }
+
+            function updateButtonsState() {
+                const hasKey = hasApiKey();
+                if (isLoading) {
+                    btnLoadCatalog.disabled = true;
+                    btnGetData.disabled = true;
+                    btnReset.disabled = true;
+                } else {
+                    btnLoadCatalog.disabled = !hasKey;
+                    btnGetData.disabled = !hasKey || !catalogMap;
+                    btnReset.disabled = false;
+                }
+            }
+
+            function setLoading(loading) {
+                isLoading = loading;
+                updateButtonsState();
+                if (loading) {
+                    statusDot.className = 'status-dot loading';
+                } else if (catalogMap) {
+                    statusDot.className = 'status-dot on';
+                } else {
+                    statusDot.className = 'status-dot off';
+                }
+            }
+
+            function setCatalogStatus(loaded) {
+                if (loaded) {
+                    statusDot.className = 'status-dot on';
+                    statusText.textContent =
+                        `загружен (${new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })})`;
+                } else {
+                    statusDot.className = 'status-dot off';
+                    statusText.textContent = 'не загружен';
+                    catalogMap = null;
+                }
+                updateButtonsState();
+            }
+
+            function showToast(message) {
+                toast.textContent = message;
+                toast.classList.add('show');
+                clearTimeout(toast._timeout);
+                toast._timeout = setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 2000);
+            }
+
+            function parseArticles(text) {
+                const lines = text.split('\n');
+                const articles = [];
+                const seen = new Set();
+                for (let line of lines) {
+                    let trimmed = line.trim().replace(/\\\//g, '/');
+                    trimmed = trimmed.replace(/\\/g, '');
+                    if (trimmed && !seen.has(trimmed.toLowerCase())) {
+                        seen.add(trimmed.toLowerCase());
+                        articles.push(trimmed);
+                    }
+                }
+                return articles;
+            }
+
+            async function fetchJSON(url) {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`Ошибка ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            }
+
+            function buildApiUrl(endpoint) {
+                const key = getApiKey();
+                const tm = getTimestamp();
+                return `${API_BASE}/${endpoint}?hash=${key}&tm=${tm}`;
+            }
+
+            async function loadCatalog() {
+                if (isLoading) return;
+                const key = getApiKey();
+                if (!key) {
+                showToast('Сначала введите API-ключ');
+                return;
+                }
+    
+                setLoading(true);
+                statusText.textContent = 'обновление каталога...';
+
+                try {
+                const response = await fetch(`/update-catalog?api_key=${key}`);
+                if (!response.ok) throw new Error('Ошибка сервера');
+                const data = await response.json();
+        
+                catalogMap = true; // просто флаг, что каталог загружен
+                setCatalogStatus(true);
+                showToast(`Каталог обновлён (${data.count.toLocaleString('ru-RU')} товаров)`);
+                } catch (err) {
+                setCatalogStatus(false);
+                showToast('Ошибка загрузки каталога');
+                } finally {
+                setLoading(false);
+                 }
+                 }
+            async function getData() {
+                if (isLoading || !catalogMap) return;
+    
+                const key = getApiKey();
+                if (!key) {
+                 showToast('Введите API-ключ');
+                 return;
+                 }
+    
+                 const articles = parseArticles(articleInput.value);
+                 if (articles.length === 0) {
+                 showToast('Введите хотя бы один артикул');
+                 return;
+                 }
+
+                 setLoading(true);
+                 emptyState.style.display = 'none';
+                 resultsContainer.innerHTML = '<div class="empty-state" style="color:#86868b;">Загрузка данных...</div>';
+
+                 try {
+                  const response = await fetch(`/search?articles=${articles.join(',')}&api_key=${key}`);
+                 if (!response.ok) throw new Error('Ошибка сервера');
+                 const results = await response.json();
+        
+                 lastSearchResults = results;
+                 renderResults(results);
+                 btnCopyAll.disabled = false;
+                } catch (err) {
+                 resultsContainer.innerHTML = `<div class="empty-state" style="color:#ff3b30;">Ошибка<br><small>${err.message}</small></div>`;
+                showToast('Ошибка загрузки данных');
+                btnCopyAll.disabled = true;
+                lastSearchResults = null;
+                 } finally {
+                 setLoading(false);
+                }
+                }
+            function renderResults(results) {
+    if (!results || results.length === 0) {
+        resultsContainer.innerHTML = '<div class="empty-state">Нет данных для отображения</div>';
+        emptyState.style.display = 'flex';
+        return;
+    }
+
+    emptyState.style.display = 'none';
+    let html = '';
+
+    for (let i = 0; i < results.length; i++) {
+        if (i > 0) {
+            html += '<hr class="card-divider">';
+        }
+
+        const r = results[i];
+
+        if (!r.found) {
+            html += `
+            <div class="card card-error">
+                <div class="card-sku">${escapeHTML(r.article)}</div>
+                <div class="card-title" style="color:#ff3b30;">Артикул не найден в каталоге</div>
+            </div>`;
+            continue;
+        }
+
+        html += `
+        <div class="card">
+            <div class="card-sku">${escapeHTML(r.article)}</div>
+            <div class="card-title">${escapeHTML(r.title)}</div>
+            <div class="card-section-title">💰 Цены</div>`;
+
+        const priceLabels = [
+            { key: 'retail', label: 'Розница' },
+            { key: 'wholesale', label: 'Опт' },
+            { key: 'wholesalelarge', label: 'Спец' },
+            { key: 'dealer', label: 'Дилер' },
+        ];
+
+        let hasAnyPrice = false;
+        if (r.prices) {
+            for (const pl of priceLabels) {
+                const val = r.prices[pl.key];
+                if (val) {
+                    hasAnyPrice = true;
+                    html += `
+                    <div class="card-price-row">
+                        <span class="card-price-label">${pl.label}:</span>
+                        <span class="card-price-value">${formatPrice(val)} ₽</span>
+                    </div>`;
+                }
+            }
+        }
+        if (!hasAnyPrice) {
+            html += `<div class="card-empty">—</div>`;
+        }
+
+        html += `<div class="card-section-title">📦 Наличие на складах</div>`;
+
+        if (!r.stocks || r.stocks.length === 0) {
+            html += `<div class="card-empty">нет</div>`;
+        } else {
+            for (const s of r.stocks) {
+                const dateStr = s.date ? ` (поступление ${s.date})` : '';
+                html += `
+                <div class="card-stock-row">
+                    <span>${escapeHTML(s.name)} — Свободно: ${s.free} шт, Всего: ${s.full} шт<span class="card-stock-date">${dateStr}</span></span>
+                </div>`;
+            }
+        }
+
+        html += `
+            <div class="card-totals">
+                Итого по всем складам: Свободно: ${r.total_free} шт, Всего: ${r.total_full} шт
+            </div>
+        </div>`;
+    }
+
+    resultsContainer.innerHTML = html;
+}
+            function formatPrice(priceStr) {
+                const num = parseFloat(priceStr);
+                if (isNaN(num)) return priceStr;
+                return num.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            function formatPricePlain(priceStr) {
+                const num = parseFloat(priceStr);
+                if (isNaN(num)) return priceStr;
+                return num.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    .replace(/\u00A0/g, ' ');
+            }
+
+            function formatDate(dateStr) {
+                if (!dateStr) return '';
+                const parts = dateStr.split('-');
+                if (parts.length === 3) {
+                    return `${parts[2]}.${parts[1]}.${parts[0]}`;
+                }
+                return dateStr;
+            }
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            function padRight(str, len) {
+                return str + ' '.repeat(Math.max(0, len - str.length));
+            }
+
+            function copyAllResults() {
+    if (!lastSearchResults || lastSearchResults.length === 0) {
+        showToast('Нет данных для копирования');
+        return;
+    }
+
+    let html = '';
+    let plain = '';
+
+    for (let i = 0; i < lastSearchResults.length; i++) {
+        if (i > 0) {
+            plain += '\n\n──────────────\n\n';
+            html += '<div style="border-top:1px solid #e5e5ea;margin:16px 0;"></div>';
+        }
+        const r = lastSearchResults[i];
+
+        if (!r.found) {
+            plain += `${r.article}\nАртикул не найден в каталоге\n`;
+            html += `<div style="background:#fff5f5;border:1px solid #ffd7d5;border-radius:12px;padding:16px 18px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
+                <div style="font-weight:700;font-size:15px;color:#ff3b30;margin-bottom:2px;">${escapeHTML(r.article)}</div>
+                <div style="font-size:13px;color:#ff3b30;">Артикул не найден в каталоге</div>
+            </div>`;
+            continue;
+        }
+
+        html += `<div style="background:#fafafa;border:1px solid #f0f0f0;border-radius:12px;padding:16px 18px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">`;
+        html += `<div style="font-weight:700;font-size:15px;color:#1d1d1f;margin-bottom:2px;">${escapeHTML(r.article)}</div>`;
+        html += `<div style="font-size:13px;color:#86868b;margin-bottom:12px;line-height:1.4;">${escapeHTML(r.title)}</div>`;
+        html += `<div style="font-size:12px;font-weight:600;color:#86868b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;margin-top:10px;">💰 Цены</div>`;
+
+        plain += `${r.article}\n${r.title}\n`;
+
+        const priceLabels = [
+            { key: 'retail', label: 'Розница' },
+            { key: 'wholesale', label: 'Опт' },
+            { key: 'wholesalelarge', label: 'Спец' },
+            { key: 'dealer', label: 'Дилер' },
+        ];
+
+        let hasAnyPrice = false;
+        if (r.prices) {
+            for (const pl of priceLabels) {
+                const val = r.prices[pl.key];
+                if (val) {
+                    hasAnyPrice = true;
+                    html += `<div style="font-size:13px;padding:2px 0;color:#1d1d1f;">
+                        <span style="color:#86868b;">${pl.label}:</span>  <span style="font-weight:500;">${formatPricePlain(val)} ₽</span>
+                    </div>`;
+                    plain += `${pl.label}: ${formatPricePlain(val)} ₽\n`;
+                }
+            }
+        }
+        if (!hasAnyPrice) {
+            html += `<div style="font-size:13px;color:#86868b;font-style:italic;padding:2px 0;">—</div>`;
+            plain += `—\n`;
+        }
+
+        html += `<div style="font-size:12px;font-weight:600;color:#86868b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;margin-top:10px;">📦 Наличие на складах</div>`;
+        plain += `\nНаличие на складах:\n`;
+
+        if (!r.stocks || r.stocks.length === 0) {
+            html += `<div style="font-size:13px;color:#86868b;font-style:italic;padding:2px 0;">нет</div>`;
+            plain += `нет\n`;
+        } else {
+            for (const s of r.stocks) {
+                const dateStr = s.date ? ` (поступление ${s.date})` : '';
+                html += `<div style="font-size:13px;padding:3px 0;color:#1d1d1f;">${escapeHTML(s.name)} — Свободно: ${s.free} шт, Всего: ${s.full} шт<span style="color:#86868b;font-size:12px;">${dateStr}</span></div>`;
+                plain += `${s.name}: Свободно: ${s.free} шт, Всего: ${s.full} шт${dateStr}\n`;
+            }
+        }
+
+        html += `<div style="margin-top:8px;padding-top:8px;border-top:1px solid #e5e5ea;font-size:13px;font-weight:600;color:#1d1d1f;">Итого: Свободно: ${r.total_free} шт, Всего: ${r.total_full} шт</div>`;
+        plain += `\nИтого: Свободно: ${r.total_free} шт, Всего: ${r.total_full} шт`;
+        html += `</div>`;
+    }
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const clipboardItem = new ClipboardItem({
+        'text/html': blob,
+        'text/plain': new Blob([plain], { type: 'text/plain' })
+    });
+    navigator.clipboard.write([clipboardItem]).then(() => {
+        showToast('Скопировано в буфер обмена');
+    }).catch(() => {
+        navigator.clipboard.writeText(plain).then(() => {
+            showToast('Скопировано (без форматирования)');
+        }).catch(() => {
+            showToast('Не удалось скопировать');
+        });
+    });
+}
+
+            function resetApp() {
+                articleInput.value = '';
+                resultsContainer.innerHTML = '';
+                emptyState.style.display = 'flex';
+                lastSearchResults = null;
+                btnCopyAll.disabled = true;
+                showToast('Поля очищены');
+            }
+
+            apiKeyInput.addEventListener('input', function() {
+                saveApiKey();
+                updateApiKeyStatus();
+                if (catalogMap) {
+                    catalogMap = null;
+                    setCatalogStatus(false);
+                    resultsContainer.innerHTML = '';
+                    emptyState.style.display = 'flex';
+                    lastSearchResults = null;
+                    btnCopyAll.disabled = true;
+                }
+            });
+
+            btnLoadCatalog.addEventListener('click', loadCatalog);
+            btnGetData.addEventListener('click', getData);
+            btnReset.addEventListener('click', resetApp);
+            btnCopyAll.addEventListener('click', copyAllResults);
+
+            articleInput.addEventListener('keydown', function(e) {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    getData();
+                }
+            });
+
+            loadApiKey();
+            setCatalogStatus(false);
+            btnCopyAll.disabled = true;
+            updateButtonsState();
+        async function checkCatalogStatus() {
+    try {
+        const response = await fetch('/catalog-status');
+        const data = await response.json();
+        if (data.loaded) {
+            catalogMap = true;
+            setCatalogStatus(true);
+        }
+    } catch (err) {
+        // сервер не ответил, ничего не делаем
+    }
+}
+
+checkCatalogStatus();
+        })();
+    </script>
+
+</body>
+</html>
